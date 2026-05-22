@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Meeting Notes Generator</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            max-width: 700px;
+            width: 100%;
+            padding: 40px;
+            animation: fadeIn 0.5s;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 10px;
+            font-size: 2.2em;
+        }
+        
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 0.95em;
+            line-height: 1.6;
+        }
+        
+        .language-badge {
+            display: inline-block;
+            background: #f0f0f0;
+            padding: 5px 12px;
+            border-radius: 15px;
+            font-size: 0.85em;
+            margin: 2px;
+            color: #555;
+        }
+        
+        .upload-area {
+            border: 3px dashed #667eea;
+            border-radius: 15px;
+            padding: 50px 40px;
+            text-align: center;
+            background: #f8f9ff;
+            transition: all 0.3s;
+            cursor: pointer;
+            position: relative;
+        }
+        
+        .upload-area:hover {
+            border-color: #764ba2;
+            background: #f0f1ff;
+            transform: scale(1.01);
+        }
+        
+        .upload-area.dragover {
+            border-color: #764ba2;
+            background: #e8e9ff;
+            transform: scale(1.02);
+        }
+        
+        .upload-icon {
+            font-size: 3.5em;
+            margin-bottom: 15px;
+            animation: bounce 2s infinite;
+        }
+        
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+        
+        input[type="file"] {
+            display: none;
+        }
+        
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 16px 40px;
+            border-radius: 30px;
+            font-size: 1.1em;
+            cursor: pointer;
+            margin-top: 25px;
+            width: 100%;
+            transition: all 0.3s;
+            font-weight: 600;
+        }
+        
+        .btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+        }
+        
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+        
+        .loader {
+            display: none;
+            text-align: center;
+            margin-top: 25px;
+            padding: 25px;
+            background: #f8f9ff;
+            border-radius: 15px;
+        }
+        
+        .loader.active {
+            display: block;
+        }
+        
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .progress-text {
+            color: #555;
+            margin: 5px 0;
+            font-size: 0.95em;
+        }
+        
+        .result {
+            display: none;
+            margin-top: 30px;
+            padding: 25px;
+            background: linear-gradient(135deg, #f0fff4 0%, #e6f7ff 100%);
+            border-radius: 15px;
+            border-left: 5px solid #48bb78;
+        }
+        
+        .result.active {
+            display: block;
+            animation: slideIn 0.5s;
+        }
+        
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateX(-20px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+        
+        .result h3 {
+            color: #2d3748;
+            margin-bottom: 18px;
+            font-size: 1.4em;
+        }
+        
+        .result-item {
+            background: white;
+            padding: 12px 15px;
+            margin: 10px 0;
+            border-radius: 8px;
+            color: #4a5568;
+            line-height: 1.6;
+        }
+        
+        .result-item strong {
+            color: #2d3748;
+        }
+        
+        .download-btn {
+            background: #48bb78;
+            color: white;
+            text-decoration: none;
+            padding: 14px 35px;
+            border-radius: 25px;
+            display: inline-block;
+            margin-top: 20px;
+            transition: all 0.3s;
+            font-weight: 600;
+        }
+        
+        .download-btn:hover {
+            background: #38a169;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(72, 187, 120, 0.4);
+        }
+        
+        .error {
+            display: none;
+            background: #fff5f5;
+            color: #c53030;
+            padding: 18px;
+            border-radius: 12px;
+            border-left: 5px solid #fc8181;
+            margin-top: 20px;
+            line-height: 1.6;
+        }
+        
+        .error.active {
+            display: block;
+            animation: shake 0.5s;
+        }
+        
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-10px); }
+            75% { transform: translateX(10px); }
+        }
+        
+        .file-info {
+            display: none;
+            margin-top: 18px;
+            padding: 15px;
+            background: #edf2f7;
+            border-radius: 10px;
+        }
+        
+        .file-info.active {
+            display: block;
+        }
+        
+        .supported-formats {
+            text-align: center;
+            margin-top: 18px;
+            font-size: 0.85em;
+            color: #718096;
+        }
+        
+        .stats {
+            display: flex;
+            justify-content: space-around;
+            margin: 20px 0;
+        }
+        
+        .stat {
+            text-align: center;
+            padding: 15px;
+        }
+        
+        .stat-number {
+            font-size: 2em;
+            font-weight: bold;
+            color: #667eea;
+        }
+        
+        .stat-label {
+            font-size: 0.9em;
+            color: #666;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎤 AI Meeting Notes</h1>
+        <p class="subtitle">
+            Transform your meeting recordings into actionable insights<br>
+            <span class="language-badge">🇬🇧 English</span>
+            <span class="language-badge">🇮🇳 हिंदी</span>
+            <span class="language-badge">🇮🇳 मराठी</span>
+            <span class="language-badge">+ 96 more</span>
+        </p>
+        
+        <form id="uploadForm">
+            <div class="upload-area" id="uploadArea">
+                <div class="upload-icon">📁</div>
+                <h3>Drop your audio file here</h3>
+                <p>or click to browse</p>
+                <input type="file" id="audioFile" name="audio_file" 
+                       accept=".mp3,.wav,.m4a,.ogg,.flac,.webm">
+                <p class="supported-formats">
+                    Supported formats: MP3, WAV, M4A, OGG, FLAC, WebM<br>
+                    Maximum size: 100MB
+                </p>
+            </div>
+            
+            <div class="file-info" id="fileInfo">
+                <strong>📎 Selected file:</strong> <span id="fileName"></span><br>
+                <strong>📏 Size:</strong> <span id="fileSize"></span>
+            </div>
+            
+            <button type="submit" class="btn" id="submitBtn">
+                🚀 Generate Meeting Notes
+            </button>
+        </form>
+        
+        <div class="loader" id="loader">
+            <div class="spinner"></div>
+            <p class="progress-text"><strong>Processing your meeting...</strong></p>
+            <p class="progress-text">⏱️ This may take 2-5 minutes depending on file size</p>
+            <p class="progress-text" style="font-size: 0.85em; color: #888;">
+                Steps: Transcription → Summarization → Action Extraction → PDF Generation
+            </p>
+        </div>
+        
+        <div class="error" id="error"></div>
+        
+        <div class="result" id="result">
+            <h3>✅ Meeting Notes Generated!</h3>
+            
+            <div class="stats">
+                <div class="stat">
+                    <div class="stat-number" id="statsWords">-</div>
+                    <div class="stat-label">Words</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-number" id="statsActions">-</div>
+                    <div class="stat-label">Actions</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-number" id="statsDecisions">-</div>
+                    <div class="stat-label">Decisions</div>
+                </div>
+            </div>
+            
+            <div class="result-item">
+                <strong>🌍 Detected Language:</strong> <span id="detectedLang"></span>
+            </div>
+            
+            <div class="result-item">
+                <strong>📊 Summary Preview:</strong><br>
+                <span id="summaryText"></span>
+            </div>
+            
+            <center>
+                <a href="#" class="download-btn" id="downloadBtn">
+                    📥 Download Complete PDF Report
+                </a>
+            </center>
+        </div>
+    </div>
+    
+    <script>
+        const uploadArea = document.getElementById('uploadArea');
+        const audioFile = document.getElementById('audioFile');
+        const uploadForm = document.getElementById('uploadForm');
+        const submitBtn = document.getElementById('submitBtn');
+        const loader = document.getElementById('loader');
+        const result = document.getElementById('result');
+        const error = document.getElementById('error');
+        const fileInfo = document.getElementById('fileInfo');
+        const fileName = document.getElementById('fileName');
+        const fileSize = document.getElementById('fileSize');
+        
+        // Click to upload
+        uploadArea.addEventListener('click', () => audioFile.click());
+        
+        // File selected
+        audioFile.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                const file = e.target.files[0];
+                fileName.textContent = file.name;
+                fileSize.textContent = (file.size / (1024 * 1024)).toFixed(2) + ' MB';
+                fileInfo.classList.add('active');
+            }
+        });
+        
+        // Drag and drop
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.classList.add('dragover');
+        });
+        
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.classList.remove('dragover');
+        });
+        
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+            
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                audioFile.files = files;
+                fileName.textContent = files[0].name;
+                fileSize.textContent = (files[0].size / (1024 * 1024)).toFixed(2) + ' MB';
+                fileInfo.classList.add('active');
+            }
+        });
+        
+        // Form submit
+        uploadForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            if (!audioFile.files.length) {
+                showError('⚠️ Please select an audio file first');
+                return;
+            }
+            
+            // Hide previous results
+            result.classList.remove('active');
+            error.classList.remove('active');
+            
+            // Show loader
+            loader.classList.add('active');
+            submitBtn.disabled = true;
+            submitBtn.textContent = '⏳ Processing...';
+            
+            // Prepare form data
+            const formData = new FormData();
+            formData.append('audio_file', audioFile.files[0]);
+            
+            try {
+                const response = await fetch('/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    // Update stats
+                    document.getElementById('statsWords').textContent = 
+                        data.word_count.toLocaleString();
+                    document.getElementById('statsActions').textContent = data.actions_count;
+                    document.getElementById('statsDecisions').textContent = data.decisions_count;
+                    
+                    // Update result
+                    document.getElementById('detectedLang').textContent = data.detected_language;
+                    document.getElementById('summaryText').textContent = data.summary;
+                    document.getElementById('downloadBtn').href = data.pdf_url;
+                    
+                    result.classList.add('active');
+                    
+                    // Scroll to result
+                    result.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                } else {
+                    showError(data.error || 'An error occurred during processing');
+                }
+            } catch (err) {
+                showError('❌ Network error: ' + err.message);
+            } finally {
+                // Hide loader
+                loader.classList.remove('active');
+                submitBtn.disabled = false;
+                submitBtn.textContent = '🚀 Generate Meeting Notes';
+            }
+        });
+        
+        function showError(message) {
+            error.textContent = message;
+            error.classList.add('active');
+            error.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+    </script>
+</body>
+</html>
